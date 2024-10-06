@@ -11,7 +11,7 @@ An Android app designed to sync both Google Calendar and Microsoft Outlook calen
 ## Getting Started
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/calendar-sync-widget.git
+   git clone https://github.com/ryanellenburg/calendar-sync-widget.git
 
 2. Open the project in Android Studio.
 

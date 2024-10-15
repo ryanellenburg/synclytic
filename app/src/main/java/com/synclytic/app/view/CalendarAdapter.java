@@ -1,4 +1,4 @@
-package com.synclytic.app;
+package com.synclytic.app.view;
 
 import android.view.LayoutInflater;
 import android.view.View;

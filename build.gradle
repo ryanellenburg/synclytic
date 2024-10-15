@@ -1,10 +1,13 @@
-// Top-level build file where you can add configuration options common to all sub-projects/modules.
+// Top-level build file for configuring the project at the global level.
+// All common configuration options for sub-projects/modules are set here.
+
 plugins {
-    id 'com.android.application' version '7.2.2' apply false // AGP version
-    id 'com.android.library' version '7.2.2' apply false // AGP version
-    id 'org.jetbrains.kotlin.android' version '1.6.10' apply false // Keep Kotlin version for compatibility
+    id 'com.android.application' version '7.2.2' apply false // AGP (Android Gradle Plugin) for application module
+    id 'com.android.library' version '7.2.2' apply false // AGP for library modules
+    id 'org.jetbrains.kotlin.android' version '1.6.10' apply false // Kotlin Android plugin version
 }
 
+// Clean task to delete the build directory for a fresh build
 task clean(type: Delete) {
-    delete rootProject.buildDir
+    delete rootProject.buildDir // Deletes all files in the build directory
 }

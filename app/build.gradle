@@ -1,48 +1,74 @@
 plugins {
-    id 'com.android.application'
-    id 'org.jetbrains.kotlin.android'
+    id 'com.android.application' // Android application plugin
+    id 'org.jetbrains.kotlin.android' // Kotlin support for Android
 }
 
 android {
-    compileSdk 34
-    namespace 'com.synclytic.app'
+    compileSdk 34 // SDK version used for compiling the project
+    namespace 'com.synclytic.app' // Application package namespace
 
     defaultConfig {
-        applicationId "com.synclytic.app"
-        minSdk 31
-        targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        applicationId "com.synclytic.app" // Unique identifier for the app
+        minSdk 31 // Minimum supported Android version (Android 12)
+        targetSdk 34 // Target Android version (Android 14)
+        versionCode 1 // Version code for the app
+        versionName "1.0" // Human-readable version name
 
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner" // Test runner for instrumentation tests
+    }
+
+    packagingOptions {
+        resources {
+            excludes += [
+                    "META-INF/DEPENDENCIES", // Exclude unnecessary files from the APK
+                    "META-INF/INDEX.LIST" // Exclude conflict-causing files from the APK
+            ]
+        }
     }
 
     buildTypes {
         release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            minifyEnabled false // Disable code shrinking for release builds
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro' // Proguard rules for release
         }
     }
+
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_1_8 // Java 8 compatibility for source code
+        targetCompatibility JavaVersion.VERSION_1_8 // Java 8 compatibility for compiled code
     }
+
     kotlinOptions {
-        jvmTarget = '1.8'
+        jvmTarget = '1.8' // Kotlin JVM target compatibility (Java 8)
     }
 }
 
 dependencies {
-    implementation 'androidx.core:core-ktx:1.9.0'
-    implementation 'androidx.appcompat:appcompat:1.5.0'
-    implementation 'com.google.android.material:material:1.6.1'
-    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.3'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
+    implementation 'androidx.core:core-ktx:1.9.0' // Kotlin extensions for Android
+    implementation 'androidx.appcompat:appcompat:1.5.0' // Support for backwards-compatible Android components
+    implementation 'com.google.android.material:material:1.6.1' // Material Design components
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4' // Layout manager for complex UIs
+    testImplementation 'junit:junit:4.13.2' // JUnit testing framework for unit tests
+    androidTestImplementation 'androidx.test.ext:junit:1.1.3' // AndroidX JUnit extensions for Android tests
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0' // UI testing framework for Android
 
-    // Existing dependencies
-    implementation "androidx.recyclerview:recyclerview:1.2.1"
-    implementation "androidx.compose.ui:ui:1.0.5"
-    implementation "androidx.compose.material3:material3:1.0.0"
+    // Google API Client Libraries
+    implementation "com.google.api-client:google-api-client:2.7.0" // Core Google API client library
+    implementation 'com.google.api-client:google-api-client-android:2.7.0' // Android-specific Google API client
+    implementation 'com.google.api-client:google-api-client-gson:2.7.0' // GSON support for JSON parsing
+    implementation 'com.google.http-client:google-http-client-gson:1.45.0' // GSON support for HTTP requests
+    implementation "com.google.apis:google-api-services-calendar:v3-rev20240927-2.0.0" // Google Calendar API client
+
+    // Gson dependency for JSON parsing
+    implementation 'com.google.code.gson:gson:2.10.1' // GSON library for parsing JSON
+
+    // RecyclerView and Compose libraries for UI
+    implementation 'androidx.recyclerview:recyclerview:1.2.1' // RecyclerView for lists
+    implementation 'androidx.compose.ui:ui:1.0.5' // Jetpack Compose UI toolkit
+    implementation 'androidx.compose.material3:material3:1.0.0' // Material Design components for Compose
+
+    // Google Play Services
+    implementation "com.google.android.gms:play-services-auth:20.0.0" // Google authentication services
+    implementation 'com.google.android.gms:play-services-tasks:18.0.2' // Google Play tasks API
+    implementation 'com.google.android.gms:play-services-base:18.1.0' // Base library for Google Play services
 }

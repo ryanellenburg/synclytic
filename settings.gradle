@@ -1,16 +1,18 @@
 pluginManagement {
     repositories {
-        gradlePluginPortal()
-        google()
-        mavenCentral()
+        gradlePluginPortal() // Gradle's plugin repository
+        google() // Google's repository for Android dependencies
+        mavenCentral() // Maven Central repository for third-party libraries
     }
 }
+
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS) // Ensure all repositories are declared in this file
     repositories {
-        google()
-        mavenCentral()
+        google() // Google repository for Android dependencies
+        mavenCentral() // Maven Central repository for third-party libraries
     }
 }
-rootProject.name = "Synclytic"
-include ':app'
+
+rootProject.name = "Synclytic" // Name of the project
+include ':app' // Include the app module in the project

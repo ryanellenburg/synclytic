@@ -1,14 +1,14 @@
 package com.synclytic.app.presenter;
 
 import com.synclytic.app.model.CalendarModel;
-import com.synclytic.app.view.CalendarWidgetView;
+import com.synclytic.app.view.CalendarView;
 
 public class CalendarPresenter {
     private CalendarModel calendarModel;
-    private CalendarWidgetView calendarWidgetView;
+    private CalendarView calendarView;
 
-    public CalendarPresenter(CalendarWidgetView view) {
-        this.calendarWidgetView = view;
+    public CalendarPresenter(CalendarView view) {
+        this.calendarView = view;
         this.calendarModel = new CalendarModel(); // Initialize the model
     }
 
@@ -22,6 +22,6 @@ public class CalendarPresenter {
         String[] calendarEvents = calendarModel.getCalendarEvents();
 
         // Pass the fetched events to the view
-        calendarWidgetView.showCalendarEvents(calendarEvents);
+        calendarView.showCalendarEvents(calendarEvents);
     }
 }

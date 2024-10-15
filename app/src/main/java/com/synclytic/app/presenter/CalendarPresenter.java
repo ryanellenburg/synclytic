@@ -4,23 +4,24 @@ import com.synclytic.app.model.CalendarModel;
 import com.synclytic.app.view.CalendarWidgetView;
 
 public class CalendarPresenter {
-    private CalendarModel model;
-    private CalendarWidgetView view;
+    private CalendarModel calendarModel;
+    private CalendarWidgetView calendarWidgetView;
 
     public CalendarPresenter(CalendarWidgetView view) {
-        this.view = view;
-        this.model = new CalendarModel(); // Initialize the model
+        this.calendarWidgetView = view;
+        this.calendarModel = new CalendarModel(); // Initialize the model
     }
 
     // This method fetches the data and updates the view
-    public void loadCalendarEvents() {
-        model.fetchGoogleCalendarEvents();  // Fetch Google events
-        model.fetchOutlookCalendarEvents(); // Fetch Outlook events
+    public void fetchCalendarData() {
+        // Fetch events from both Google and Outlook calendars
+        calendarModel.fetchGoogleCalendarEvents();
+        calendarModel.fetchOutlookCalendarEvents();
 
-        // Now merge and sort the events
-        model.mergeAndSortEvents();
+        // Get the merged events
+        String[] calendarEvents = calendarModel.getCalendarEvents();
 
-        // TODO: Pass the fetched data to the view for display
-        // view.updateWidget(...);
+        // Pass the fetched events to the view
+        calendarWidgetView.showCalendarEvents(calendarEvents);
     }
 }

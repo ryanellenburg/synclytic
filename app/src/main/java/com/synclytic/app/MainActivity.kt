@@ -1,37 +1,34 @@
 package com.synclytic.app
 
-import androidx.appcompat.app.AppCompatActivity
+import com.synclytic.app.CalendarAdapter
 import android.os.Bundle
-import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.RecyclerView
 import com.synclytic.app.presenter.CalendarPresenter
-import com.synclytic.app.view.CalendarView
+import com.synclytic.app.view.CalendarWidgetView
 
-class MainActivity : AppCompatActivity(), CalendarView {  // Implement CalendarView interface
+class MainActivity : AppCompatActivity(), CalendarWidgetView {
+
+    private lateinit var calendarPresenter: CalendarPresenter
     private lateinit var recyclerView: RecyclerView
-    private lateinit var presenter: CalendarPresenter  // Initialize Presenter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Initialize RecyclerView
         recyclerView = findViewById(R.id.recyclerView)
 
         // Initialize Presenter
-        presenter = CalendarPresenter(this)
-        presenter.loadCalendarData() // Call presenter to load data
+        calendarPresenter = CalendarPresenter(this)
+
+        // Fetch and display calendar data
+        calendarPresenter.fetchCalendarData()
     }
 
-    // Implement CalendarView methods
-    override fun showCalendarEvents(events: List<String>) {
-        // You can display events on RecyclerView here
-        Toast.makeText(this, "Calendar events loaded", Toast.LENGTH_SHORT).show()
-        // In the future, update RecyclerView with calendar events data here
-    }
-
-    override fun showError(error: String) {
-        // Display error message if data loading fails
-        Toast.makeText(this, error, Toast.LENGTH_SHORT).show()
+    override fun showCalendarEvents(events: Array<String>) {
+        // Handle displaying the calendar events in RecyclerView
+        // We will implement this in the next step
+        val adapter = CalendarAdapter(events)
+        recyclerView.adapter = adapter
     }
 }

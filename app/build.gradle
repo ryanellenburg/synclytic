@@ -21,7 +21,8 @@ android {
         resources {
             excludes += [
                     "META-INF/DEPENDENCIES", // Exclude unnecessary files from the APK
-                    "META-INF/INDEX.LIST" // Exclude conflict-causing files from the APK
+                    "META-INF/INDEX.LIST", // Exclude conflict-causing files from the APK
+                    "META-INF/jersey-module-version" // Exclude duplicate file from Jersey libraries to prevent build conflicts
             ]
         }
     }
@@ -71,4 +72,10 @@ dependencies {
     implementation "com.google.android.gms:play-services-auth:20.0.0" // Google authentication services
     implementation 'com.google.android.gms:play-services-tasks:18.0.2' // Google Play tasks API
     implementation 'com.google.android.gms:play-services-base:18.1.0' // Base library for Google Play services
+
+    // Microsoft API Libraries
+    implementation 'com.microsoft.identity.client:msal:5.7.0' // Microsoft Authentication Library (MSAL)
+
+    // Microsoft Graph dependencies
+    implementation ('com.microsoft.graph:microsoft-graph:2.0.0') // Microsoft Graph Library
 }

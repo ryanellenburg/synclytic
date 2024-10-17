@@ -3,14 +3,22 @@ pluginManagement {
         gradlePluginPortal() // Gradle's plugin repository
         google() // Google's repository for Android dependencies
         mavenCentral() // Maven Central repository for third-party libraries
+        jcenter() // JCenter repository for additional third-party libraries
+        maven { url "https://jitpack.io" } // JitPack repository for additional dependencies
+        maven { url "https://pkgs.dev.azure.com/MicrosoftDeviceSDK/DuoSDK-Public/_packaging/Duo-SDK-Feed/maven/v1" } // Azure SDK feed for Duo SDK dependencies
+        maven { url "https://identitydivision.pkgs.visualstudio.com/_packaging/AndroidADAL/maven/v1" } // Visual Studio package for Android ADAL dependencies
     }
 }
 
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS) // Ensure all repositories are declared in this file
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS) // Require all repositories to be declared here
     repositories {
-        google() // Google repository for Android dependencies
+        google() // Google's repository for Android dependencies
         mavenCentral() // Maven Central repository for third-party libraries
+        jcenter() // JCenter repository for additional third-party libraries
+        maven { url "https://jitpack.io" } // JitPack repository for additional dependencies
+        maven { url "https://pkgs.dev.azure.com/MicrosoftDeviceSDK/DuoSDK-Public/_packaging/Duo-SDK-Feed/maven/v1" } // Azure SDK feed for Duo SDK dependencies
+        maven { url "https://identitydivision.pkgs.visualstudio.com/_packaging/AndroidADAL/maven/v1" } // Visual Studio package for Android ADAL dependencies
     }
 }
 

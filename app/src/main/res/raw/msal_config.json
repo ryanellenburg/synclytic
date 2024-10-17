@@ -1,0 +1,10 @@
+{
+  "clientId": "7580a324-e924-4af7-9222-f80e81b740a0",
+  "redirectUri": "msauth://com.synclytic.app/LKYLlYBeMGtlgoOHM66yEK9yIqI%3D",
+  "authority": "https://login.microsoftonline.com/f8cdef31-a31e-4b4a-93e4-5f571e91255a",
+  "scope": [
+    "Calendars.Read"
+  ],
+  "brokerRedirectUri": "com.microsoft.identity.client://7580a324-e924-4af7-9222-f80e81b740a0",
+  "account_mode": "MULTIPLE"
+}

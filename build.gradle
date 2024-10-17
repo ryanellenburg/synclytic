@@ -4,7 +4,7 @@
 plugins {
     id 'com.android.application' version '7.2.2' apply false // AGP (Android Gradle Plugin) for application module
     id 'com.android.library' version '7.2.2' apply false // AGP for library modules
-    id 'org.jetbrains.kotlin.android' version '1.6.10' apply false // Kotlin Android plugin version
+    id 'org.jetbrains.kotlin.android' version '1.8.0' apply false // Kotlin Android plugin version
 }
 
 // Clean task to delete the build directory for a fresh build

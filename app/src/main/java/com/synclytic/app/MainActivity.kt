@@ -23,8 +23,6 @@ import com.google.android.gms.common.api.Scope
 import com.google.android.gms.tasks.Task
 
 // Google Calendar API imports
-import com.google.api.client.http.javanet.NetHttpTransport
-import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.calendar.CalendarScopes
 
 // MSAL (Microsoft Authentication Library) imports
@@ -146,7 +144,6 @@ class MainActivity : AppCompatActivity(), CalendarView {
         })
     }
 
-
     // Start Microsoft sign-in process
     private fun signInWithMicrosoft() {
         val parameters = AcquireTokenParameters.Builder()
@@ -171,9 +168,6 @@ class MainActivity : AppCompatActivity(), CalendarView {
 
         msalApp?.acquireToken(parameters)
     }
-
-
-
 
     // Fetch Microsoft Calendar data using the access token
     private fun fetchMicrosoftCalendarData(accessToken: String?) {
@@ -208,8 +202,6 @@ class MainActivity : AppCompatActivity(), CalendarView {
 
         // MSAL automatically handles redirect responses via super.onActivityResult()
     }
-
-
 
     // Process the result of Google Sign-In
     private fun handleGoogleSignInResult(task: Task<GoogleSignInAccount>) {

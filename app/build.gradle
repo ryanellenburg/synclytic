@@ -39,12 +39,12 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8 // Java 8 compatibility for source code
-        targetCompatibility JavaVersion.VERSION_1_8 // Java 8 compatibility for compiled code
+        sourceCompatibility JavaVersion.VERSION_17 // Java 17 compatibility for source code
+        targetCompatibility JavaVersion.VERSION_17 // Java 17 compatibility for compiled code
     }
 
     kotlinOptions {
-        jvmTarget = "1.8" // Kotlin JVM target compatibility (Java 8)
+        jvmTarget = "17" // Kotlin JVM target compatibility (Java 17)
     }
 }
 

@@ -19,7 +19,6 @@ import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.time.OffsetDateTime
 import java.util.*
-import java.util.concurrent.CompletableFuture
 import reactor.core.publisher.Mono
 
 // Google Sign-In imports
@@ -30,17 +29,25 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.Scope
 import com.google.android.gms.tasks.Task
+import com.google.api.client.http.javanet.NetHttpTransport
+import com.google.api.client.json.gson.GsonFactory
+import com.google.api.client.util.DateTime
+import com.google.api.services.calendar.Calendar
+import com.google.api.services.calendar.model.Event as GoogleEvent
+import com.google.auth.http.HttpCredentialsAdapter
+import com.google.auth.oauth2.AccessToken as GoogleAccessToken
+import com.google.auth.oauth2.GoogleCredentials
 
 // Google Calendar API imports
 import com.google.api.services.calendar.CalendarScopes
 
 // MSAL (Microsoft Authentication Library) imports
-import com.azure.core.credential.AccessToken
+import com.azure.core.credential.AccessToken as MicrosoftAccessToken
 import com.azure.core.credential.TokenCredential
 import com.azure.core.credential.TokenRequestContext
 import com.microsoft.graph.authentication.TokenCredentialAuthProvider
 import com.microsoft.graph.core.ClientException
-import com.microsoft.graph.models.Event
+import com.microsoft.graph.models.Event as MicrosoftEvent
 import com.microsoft.graph.models.ResponseType
 import com.microsoft.graph.requests.GraphServiceClient
 import com.microsoft.identity.client.*
@@ -78,7 +85,10 @@ class MainActivity : AppCompatActivity(), CalendarView {
     // Scopes for Microsoft Calendar access
     private val MS_SCOPES = arrayOf("Calendars.Read")
 
-    // Variable to hold the current account for silent authentication
+    // Creation of list for calendar events
+    private val calendarEvents: MutableList<CalendarEvent> = mutableListOf()
+
+        // Variable to hold the current account for silent authentication
     private var currentAccount: IAccount? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -121,6 +131,7 @@ class MainActivity : AppCompatActivity(), CalendarView {
         initializeMSAL()
     }
 
+    // Google Calendar Sign-In Step 1
     // Google Sign-In setup
     private fun initializeGoogleSignIn() {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -135,23 +146,52 @@ class MainActivity : AppCompatActivity(), CalendarView {
         signInWithGoogle()
     }
 
+    // Google Calendar Sign-In Step 2
     // Start the Google Sign-In process
     private fun signInWithGoogle() {
         val signInIntent = googleSignInClient.signInIntent
         signInLauncher.launch(signInIntent)
     }
 
+    // Google Calendar Sign-In Step 3
+    // Handle the result of Google Sign-In activity
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+    }
+
+    // Google Calendar Sign-In Step 4
+    // Process the result of Google Sign-In
+    private fun handleGoogleSignInResult(task: Task<GoogleSignInAccount>) {
+        try {
+            // Get signed-in account information
+            val account = task.getResult(ApiException::class.java)
+
+            Log.d("GoogleSignIn", "Signed in as: ${account.email}")
+
+            // Get the access token
+            val accessToken = account.idToken // Get the ID token
+
+            // Now you have the accessToken, use it to fetch Google Calendar data
+            fetchGoogleCalendarData(accessToken)
+
+        } catch (e: ApiException) {
+            Log.e("GoogleSignIn", "Sign-in failed: ${e.statusCode}")
+        }
+    }
+
+    // Outlook Calendar Sign-In Step 1
     // MSAL (Microsoft) Authentication setup
     private fun initializeMSAL() {
         // Initialize MSAL with configuration
         msalApp = PublicClientApplication.create(this, R.raw.msal_config) // Referencing MSAL config JSON
 
         // Fetch accounts from MSAL cache
-        getAccounts()
+        getMicrosoftAccounts()
     }
 
+    // Outlook Calendar Sign-In Step 2
     // Retrieve the accounts from the MSAL cache
-    private fun getAccounts() {
+    private fun getMicrosoftAccounts() {
         (msalApp as ISingleAccountPublicClientApplication).getCurrentAccountAsync(object : ISingleAccountPublicClientApplication.CurrentAccountCallback {
             override fun onAccountLoaded(account: IAccount?) {
                 account?.let {
@@ -172,6 +212,7 @@ class MainActivity : AppCompatActivity(), CalendarView {
         })
     }
 
+    // Outlook Calendar Sign-In Step 3
     // Start Microsoft sign-in process
     private fun signInWithMicrosoft() {
         val parameters = AcquireTokenParameters.Builder()
@@ -197,6 +238,74 @@ class MainActivity : AppCompatActivity(), CalendarView {
         msalApp?.acquireToken(parameters)
     }
 
+    // Fetch Google and Microsoft Calendar Data Step 1
+    // TODO get and finish code for fetchGoogleCalendarData
+    private fun fetchGoogleCalendarData(accessTokenString: String?) {
+        if (accessTokenString == null) return
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                // 1. Initialize Google Calendar Service using Google Auth Library
+                val accessToken = GoogleAccessToken(accessTokenString, null)
+                val googleCredentials = GoogleCredentials.create(accessToken)
+                val requestInitializer = HttpCredentialsAdapter(googleCredentials)
+
+                val service = Calendar.Builder(
+                    NetHttpTransport(),
+                    GsonFactory(),
+                    requestInitializer
+                )
+                    .setApplicationName("Your Application Name")
+                    .build()
+
+                // 2. Fetch Calendar Events
+                val now = DateTime(System.currentTimeMillis())
+                val eventsResult = service.events().list("primary")
+                    .setTimeMin(now)
+                    .setSingleEvents(true)
+                    .setOrderBy("startTime")
+                    .execute()
+
+                val calendarEvents = eventsResult.items?.mapNotNull { event ->
+                    // Date Conversion
+                    val startDateTime = if (event.start.dateTime != null) event.start.dateTime else event.start.date
+                    val endDateTime = if (event.end.dateTime != null) event.end.dateTime else event.end.date
+
+                    val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
+                    val startDate = dateFormat.parse(startDateTime.toString())
+                    val endDate = dateFormat.parse(endDateTime.toString())
+
+                    val rsvpStatus = getRsvpStatus(event)
+
+                    // Filter out declined events
+                    if (rsvpStatus == CalendarEvent.RsvpStatus.DECLINED) {
+                        null
+                    } else {
+                        CalendarEvent(
+                            event.id ?: "",
+                            event.summary ?: "",
+                            startDate ?: Date(0),
+                            endDate ?: Date(0),
+                            event.start.date != null,
+                            event.organizer?.email ?: "",
+                            0,
+                            CalendarEvent.Source.GOOGLE,
+                            rsvpStatus
+                        )
+                    }
+                } ?: emptyList()
+
+                // 3. Update UI
+                withContext(Dispatchers.Main) {
+                    this@MainActivity.showCalendarEvents(calendarEvents)
+                }
+            } catch (ex: Exception) {
+                Log.e("GoogleCalendar", "Failed to fetch calendar events: ${ex.message}")
+            }
+        }
+    }
+
+    // Fetch Google and Microsoft Calendar Data Step 2
     // Fetch Microsoft Calendar data using the access token
     private fun fetchMicrosoftCalendarData(accessToken: String?) {
         if (accessToken == null) return
@@ -205,9 +314,9 @@ class MainActivity : AppCompatActivity(), CalendarView {
         val authProvider = TokenCredentialAuthProvider(
             MS_SCOPES.toList(),
             object : TokenCredential {
-                override fun getToken(tokenRequestContext: TokenRequestContext): Mono<AccessToken> {
+                override fun getToken(tokenRequestContext: TokenRequestContext): Mono<MicrosoftAccessToken> {
                     return Mono.just(
-                        AccessToken(accessToken, OffsetDateTime.now().plusHours(1)) // Set token expiration
+                        MicrosoftAccessToken(accessToken, OffsetDateTime.now().plusHours(1)) // Set token expiration
                     )
                 }
             }
@@ -225,22 +334,30 @@ class MainActivity : AppCompatActivity(), CalendarView {
                     .buildRequest()
                     .get()
 
-                val calendarEvents = eventCollectionPage?.currentPage?.map { event ->
+                val calendarEvents = eventCollectionPage?.currentPage?.mapNotNull { event ->
                     // Date Conversion
                     val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()) // Adjust date format if needed
                     val startDate = dateFormat.parse(event.start?.dateTime)
                     val endDate = dateFormat.parse(event.end?.dateTime)
-                    CalendarEvent(
-                        event.id ?: "",  // Provide a default value ("") if null
-                        event.subject ?: "", // Provide a default value ("") if null
-                        startDate ?: Date(0), // Provide Date(0) as default
-                        endDate ?: Date(0),   // Provide Date(0) as default
-                        event.isAllDay ?: false, // Provide false as default
-                        event.calendar?.id ?: "", // Provide a default value ("") if null
-                        0,
-                        CalendarEvent.Source.OUTLOOK,
-                        getRsvpStatus(event)
-                    )
+
+                    val rsvpStatus = getRsvpStatus(event)
+
+                    // Filter out declined events
+                    if (rsvpStatus == CalendarEvent.RsvpStatus.DECLINED) {
+                        null
+                    } else {
+                        CalendarEvent(
+                            event.id ?: "",  // Provide a default value ("") if null
+                            event.subject ?: "", // Provide a default value ("") if null
+                            startDate ?: Date(0), // Provide Date(0) as default
+                            endDate ?: Date(0),   // Provide Date(0) as default
+                            event.isAllDay ?: false, // Provide false as default
+                            event.calendar?.id ?: "", // Provide a default value ("") if null
+                            0,
+                            CalendarEvent.Source.OUTLOOK,
+                            getRsvpStatus(event)
+                        )
+                    }
                 } ?: emptyList() // Provide an empty list if eventCollectionPage is null
 
                 // Update the UI on the main thread
@@ -253,41 +370,45 @@ class MainActivity : AppCompatActivity(), CalendarView {
         }
     }
 
+    // Google and Microsoft Step TODO find out which step this is
     // getRsvpStatus() function
-    private fun getRsvpStatus(event: Event): CalendarEvent.RsvpStatus {
-        // (Implementation from my previous response)
-        return when (event.responseStatus?.response) {
-            ResponseType.ACCEPTED -> CalendarEvent.RsvpStatus.ACCEPTED
-            ResponseType.ORGANIZER -> CalendarEvent.RsvpStatus.ACCEPTED
-            ResponseType.TENTATIVELY_ACCEPTED -> CalendarEvent.RsvpStatus.TENTATIVE
-            ResponseType.NOT_RESPONDED -> CalendarEvent.RsvpStatus.NEEDS_ACTION
-            ResponseType.NONE -> CalendarEvent.RsvpStatus.NEEDS_ACTION
-            ResponseType.UNEXPECTED_VALUE -> CalendarEvent.RsvpStatus.NEEDS_ACTION
-            else -> CalendarEvent.RsvpStatus.NEEDS_ACTION // Default to NEEDS_ACTION if no match
+    private fun getRsvpStatus(event: Any): CalendarEvent.RsvpStatus {
+        return when (event) {
+            is GoogleEvent -> {
+                // Logic for Google events
+                val attendees = event.attendees
+                if (attendees != null) {
+                    val myAttendance = attendees.find { it.self }
+                    if (myAttendance != null) {
+                        return when (myAttendance.responseStatus) {
+                            "accepted" -> CalendarEvent.RsvpStatus.ACCEPTED
+                            "declined" -> CalendarEvent.RsvpStatus.DECLINED
+                            "tentative" -> CalendarEvent.RsvpStatus.TENTATIVE
+                            "needsAction" -> CalendarEvent.RsvpStatus.NEEDS_ACTION
+                            else -> CalendarEvent.RsvpStatus.NEEDS_ACTION
+                        }
+                    }
+                }
+                CalendarEvent.RsvpStatus.NEEDS_ACTION // Default if no attendees or self not found
+            }
+            is MicrosoftEvent -> {
+                // Logic for Microsoft events (your existing code)
+                when (event.responseStatus?.response) {
+                    ResponseType.ACCEPTED -> CalendarEvent.RsvpStatus.ACCEPTED
+                    ResponseType.ORGANIZER -> CalendarEvent.RsvpStatus.ACCEPTED
+                    ResponseType.DECLINED -> CalendarEvent.RsvpStatus.DECLINED
+                    ResponseType.TENTATIVELY_ACCEPTED -> CalendarEvent.RsvpStatus.TENTATIVE
+                    ResponseType.NOT_RESPONDED -> CalendarEvent.RsvpStatus.NEEDS_ACTION
+                    ResponseType.NONE -> CalendarEvent.RsvpStatus.NEEDS_ACTION
+                    ResponseType.UNEXPECTED_VALUE -> CalendarEvent.RsvpStatus.NEEDS_ACTION
+                    else -> CalendarEvent.RsvpStatus.NEEDS_ACTION
+                }
+            }
+            else -> CalendarEvent.RsvpStatus.NEEDS_ACTION // Default for unknown event type
         }
     }
 
-    // Handle the result of Google Sign-In activity
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-
-        // MSAL automatically handles redirect responses via super.onActivityResult()
-    }
-
-    // Process the result of Google Sign-In
-    private fun handleGoogleSignInResult(task: Task<GoogleSignInAccount>) {
-        try {
-            // Get signed-in account information
-            val account = task.getResult(ApiException::class.java)
-            Log.d("GoogleSignIn", "Signed in as: ${account.email}")
-
-            // Use the signed-in account to fetch calendar events
-            calendarPresenter.fetchCalendarData() // Call the method to fetch events
-        } catch (e: ApiException) {
-            Log.e("GoogleSignIn", "Sign-in failed: ${e.statusCode}")
-        }
-    }
-
+    // Google and Microsoft Step TODO find out which step this is
     // Method to show calendar events in the RecyclerView
     override fun showCalendarEvents(calendarEvents: List<CalendarEvent>?) {
         // Here you would populate your RecyclerView with the events

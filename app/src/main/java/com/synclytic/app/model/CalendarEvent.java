@@ -7,7 +7,7 @@ public class CalendarEvent {
         GOOGLE, OUTLOOK
     }
     public enum RsvpStatus {
-        ACCEPTED, TENTATIVE, NEEDS_ACTION
+        ACCEPTED, TENTATIVE, NEEDS_ACTION, DECLINED
     }
 
     private String id;

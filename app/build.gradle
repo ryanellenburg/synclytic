@@ -73,6 +73,7 @@ dependencies {
     implementation "com.google.api-client:google-api-client-gson:2.7.0" // GSON support for JSON parsing
     implementation "com.google.http-client:google-http-client-gson:1.45.0" // GSON support for HTTP requests
     implementation "com.google.apis:google-api-services-calendar:v3-rev20240927-2.0.0" // Google Calendar API client
+    implementation("com.google.auth:google-auth-library-oauth2-http:1.16.0") // Google Auth Library
 
     // Gson dependency for JSON parsing
     implementation "com.google.code.gson:gson:2.10.1" // GSON library for parsing JSON

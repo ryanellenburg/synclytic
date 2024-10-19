@@ -15,20 +15,12 @@ public class CalendarModel {
 
     // This method will fetch events from Google Calendar
     public void fetchGoogleCalendarEvents() {
-        // 1. Use Google Calendar API client to fetch events.
-        // 2. Map the API response to a list of CalendarEvent objects.
-        //    - For each event, set the source to CalendarEvent.Source.GOOGLE
-        // 3. Add the events to the 'events' list.
-        // 4. Notify listeners that the data has changed.
+        // TODO the code for fetching is in MainActivity, need to connect MainActivity to this then to CalendarPresenter
     }
 
     // This method will fetch events from Outlook Calendar
     public void fetchOutlookCalendarEvents() {
-        // 1. Use Microsoft Graph API client to fetch events.
-        // 2. Map the API response to a list of CalendarEvent objects.
-        //    - For each event, set the source to CalendarEvent.Source.OUTLOOK
-        // 3. Add the events to the 'events' list.
-        // 4. Notify listeners that the data has changed.
+        // TODO the code for fetching is in MainActivity, need to connect MainActivity to this then to CalendarPresenter
     }
 
     // TODO add methods for updating/adding/deleting events

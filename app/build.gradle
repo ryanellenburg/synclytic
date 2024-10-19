@@ -54,6 +54,7 @@ dependencies {
     implementation "androidx.appcompat:appcompat:1.5.0" // Support for backwards-compatible Android components
     implementation "com.google.android.material:material:1.6.1" // Material Design components
     implementation "androidx.constraintlayout:constraintlayout:2.1.4" // Layout manager for complex UIs
+    implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.6.2" // Lifecycle Runtime KTX
     implementation "androidx.recyclerview:recyclerview:1.2.1" // RecyclerView for lists
     implementation "org.jetbrains.kotlin:kotlin-stdlib:1.8.0"
 
@@ -83,5 +84,5 @@ dependencies {
 
     // Microsoft API Libraries
     implementation "com.microsoft.identity.client:msal:5.7.0" // Microsoft Authentication Library (MSAL)
-    implementation "com.microsoft.graph:microsoft-graph:2.0.0" // Microsoft Graph Library
+    implementation "com.microsoft.graph:microsoft-graph:5.30.0" // Microsoft Graph Library
 }

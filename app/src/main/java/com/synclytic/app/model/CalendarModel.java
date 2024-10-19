@@ -4,8 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CalendarModel {
+
     // Store the merged calendar events
-    private List<String> calendarEvents;
+    private List<CalendarEvent> calendarEvents;
+    // TODO add listeners and observers here
 
     public CalendarModel() {
         calendarEvents = new ArrayList<>();
@@ -13,28 +15,27 @@ public class CalendarModel {
 
     // This method will fetch events from Google Calendar
     public void fetchGoogleCalendarEvents() {
-        // TODO: Add Google Calendar API code here
-        // For now, we can simulate some events
-        calendarEvents.add("Google Event 1: Team Meeting");
-        calendarEvents.add("Google Event 2: Project Deadline");
+        // 1. Use Google Calendar API client to fetch events.
+        // 2. Map the API response to a list of CalendarEvent objects.
+        //    - For each event, set the source to CalendarEvent.Source.GOOGLE
+        // 3. Add the events to the 'events' list.
+        // 4. Notify listeners that the data has changed.
     }
 
     // This method will fetch events from Outlook Calendar
     public void fetchOutlookCalendarEvents() {
-        // TODO: Add Outlook Calendar API code here
-        // For now, we can simulate some events
-        calendarEvents.add("Outlook Event 1: Client Call");
-        calendarEvents.add("Outlook Event 2: Conference");
+        // 1. Use Microsoft Graph API client to fetch events.
+        // 2. Map the API response to a list of CalendarEvent objects.
+        //    - For each event, set the source to CalendarEvent.Source.OUTLOOK
+        // 3. Add the events to the 'events' list.
+        // 4. Notify listeners that the data has changed.
     }
+
+    // TODO add methods for updating/adding/deleting events
+
 
     // This method returns the merged events
-    public String[] getCalendarEvents() {
-        return calendarEvents.toArray(new String[0]);
-    }
-
-    // You may add a method to merge and sort the fetched events if needed
-    public void mergeAndSortEvents() {
-        // TODO: Implement merging and sorting logic if necessary
-        // This could involve sorting events by date, etc.
+    public List<CalendarEvent> getCalendarEvents() {
+        return calendarEvents;
     }
 }

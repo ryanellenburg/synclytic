@@ -1,46 +1,49 @@
-package com.synclytic.app.view;
+package com.synclytic.app.view; // Replace with your package name
 
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
-import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+import com.synclytic.app.R;
+import com.synclytic.app.model.CalendarEvent;
+import java.util.List;
 
 public class CalendarAdapter extends RecyclerView.Adapter<CalendarAdapter.ViewHolder> {
-    private String[] events;
 
-    public CalendarAdapter(String[] events) {
-        this.events = events;
+    private List<CalendarEvent> calendarEvents;
+
+    public CalendarAdapter(List<CalendarEvent> calendarEvents) {
+        this.calendarEvents = calendarEvents;
     }
 
-    @NonNull
     @Override
-    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(android.R.layout.simple_list_item_1, parent, false);
+    public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+        View view = LayoutInflater.from(parent.getContext())
+                .inflate(R.layout.calendar_event_item, parent, false);
         return new ViewHolder(view);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        holder.bind(events[position]);
+    public void onBindViewHolder(ViewHolder holder, int position) {
+        CalendarEvent event = calendarEvents.get(position);
+        holder.eventTextView.setText(event.getTitle()); // Example: Display the event title
+        // ... set other UI elements based on event properties (time, color, etc.) ...
     }
 
     @Override
     public int getItemCount() {
-        return events.length;
+        return calendarEvents.size();
     }
 
-    static class ViewHolder extends RecyclerView.ViewHolder {
-        private TextView textView;
+    public static class ViewHolder extends RecyclerView.ViewHolder {
+        public TextView eventTextView;
+        // ... add other UI elements here ...
 
-        public ViewHolder(@NonNull View itemView) {
+        public ViewHolder(View itemView) {
             super(itemView);
-            textView = itemView.findViewById(android.R.id.text1);
-        }
-
-        public void bind(String event) {
-            textView.setText(event);
+            eventTextView = itemView.findViewById(R.id.event_text_view); // Use your TextView ID
+            // ... initialize other UI elements ...
         }
     }
 }

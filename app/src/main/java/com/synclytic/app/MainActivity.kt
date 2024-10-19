@@ -2,16 +2,25 @@ package com.synclytic.app
 
 // Android framework imports
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 // Java imports
+import java.text.SimpleDateFormat
+import java.time.OffsetDateTime
+import java.util.*
 import java.util.concurrent.CompletableFuture
+import reactor.core.publisher.Mono
 
 // Google Sign-In imports
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -26,20 +35,25 @@ import com.google.android.gms.tasks.Task
 import com.google.api.services.calendar.CalendarScopes
 
 // MSAL (Microsoft Authentication Library) imports
+import com.azure.core.credential.AccessToken
+import com.azure.core.credential.TokenCredential
+import com.azure.core.credential.TokenRequestContext
+import com.microsoft.graph.authentication.TokenCredentialAuthProvider
+import com.microsoft.graph.core.ClientException
+import com.microsoft.graph.models.Event
+import com.microsoft.graph.models.ResponseType
+import com.microsoft.graph.requests.GraphServiceClient
 import com.microsoft.identity.client.*
 import com.microsoft.identity.client.IAccount
 import com.microsoft.identity.client.ISingleAccountPublicClientApplication
-import com.microsoft.identity.client.ISingleAccountPublicClientApplication.CurrentAccountCallback
 import com.microsoft.identity.client.exception.MsalException
-import com.microsoft.graph.core.ClientException
-import com.microsoft.graph.http.IHttpRequest
-import com.microsoft.graph.requests.extensions.GraphServiceClient
-import com.microsoft.graph.requests.extensions.IEventCollectionPage
 
 // Local imports
-import com.synclytic.app.presenter.CalendarPresenter
+import com.synclytic.app.model.CalendarEvent
 import com.synclytic.app.view.CalendarAdapter
 import com.synclytic.app.view.CalendarView
+import com.synclytic.app.view.CalendarWidgetView
+import com.synclytic.app.presenter.CalendarPresenter
 
 class MainActivity : AppCompatActivity(), CalendarView {
 
@@ -75,7 +89,21 @@ class MainActivity : AppCompatActivity(), CalendarView {
         recyclerView = findViewById(R.id.recyclerView)
 
         // Initialize Presenter
-        calendarPresenter = CalendarPresenter(this)
+        val prefs = getSharedPreferences("my_prefs", Context.MODE_PRIVATE)
+        val widgetViewKey = prefs.getString("widget_view_key", null)
+
+        // Check if the key exists in Shared Preferences
+        if (widgetViewKey != null) {
+            // Create a CalendarWidgetView instance
+            // (In a real implementation, you would deserialize the instance here)
+            val calendarWidgetView = CalendarWidgetView()
+
+            calendarPresenter = CalendarPresenter(this, calendarWidgetView)
+
+        } else {
+            // Handle the case where the widget view is not available
+            Log.e("MainActivity", "CalendarWidgetView not found in SharedPreferences")
+        }
 
         // Register the ActivityResultLauncher for Google Sign-In
         signInLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -174,25 +202,68 @@ class MainActivity : AppCompatActivity(), CalendarView {
         if (accessToken == null) return
 
         // Initialize Microsoft Graph client
-        val graphClient = GraphServiceClient.builder()
-            .authenticationProvider { request: IHttpRequest ->
-                request.addHeader("Authorization", "Bearer $accessToken")
+        val authProvider = TokenCredentialAuthProvider(
+            MS_SCOPES.toList(),
+            object : TokenCredential {
+                override fun getToken(tokenRequestContext: TokenRequestContext): Mono<AccessToken> {
+                    return Mono.just(
+                        AccessToken(accessToken, OffsetDateTime.now().plusHours(1)) // Set token expiration
+                    )
+                }
             }
+        )// Build the Graph client using the authProvider
+        val graphClient = GraphServiceClient.builder()
+            .authenticationProvider(authProvider)
             .buildClient()
 
-        // Fetch calendar events asynchronously using Java CompletableFuture
-        CompletableFuture.supplyAsync {
-            graphClient
-                .me()
-                .events()
-                .buildRequest()
-                .get() // This is a synchronous call that will be executed in a separate thread
-        }.thenApply { eventCollectionPage: IEventCollectionPage ->
-            // Extract events after the API call completes
-            val events = eventCollectionPage.currentPage.map { event -> event.subject }.toTypedArray()
-            showCalendarEvents(events) // Update the UI with calendar events
-        }.exceptionally { ex: Throwable ->
-            Log.e("MicrosoftGraph", "Failed to fetch calendar events: ${ex.message}")
+        // Fetch calendar events asynchronously (using coroutines is recommended for Kotlin)
+        lifecycleScope.launch(Dispatchers.IO) { // Launch in a background thread
+            try {
+                val eventCollectionPage = graphClient
+                    .me()
+                    .events()
+                    .buildRequest()
+                    .get()
+
+                val calendarEvents = eventCollectionPage?.currentPage?.map { event ->
+                    // Date Conversion
+                    val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()) // Adjust date format if needed
+                    val startDate = dateFormat.parse(event.start?.dateTime)
+                    val endDate = dateFormat.parse(event.end?.dateTime)
+                    CalendarEvent(
+                        event.id ?: "",  // Provide a default value ("") if null
+                        event.subject ?: "", // Provide a default value ("") if null
+                        startDate ?: Date(0), // Provide Date(0) as default
+                        endDate ?: Date(0),   // Provide Date(0) as default
+                        event.isAllDay ?: false, // Provide false as default
+                        event.calendar?.id ?: "", // Provide a default value ("") if null
+                        0,
+                        CalendarEvent.Source.OUTLOOK,
+                        getRsvpStatus(event)
+                    )
+                } ?: emptyList() // Provide an empty list if eventCollectionPage is null
+
+                // Update the UI on the main thread
+                withContext(Dispatchers.Main) {
+                    this@MainActivity.showCalendarEvents(calendarEvents)
+                }
+            } catch (ex: ClientException) {
+                Log.e("MicrosoftGraph", "Failed to fetch calendar events: ${ex.message}")
+            }
+        }
+    }
+
+    // getRsvpStatus() function
+    private fun getRsvpStatus(event: Event): CalendarEvent.RsvpStatus {
+        // (Implementation from my previous response)
+        return when (event.responseStatus?.response) {
+            ResponseType.ACCEPTED -> CalendarEvent.RsvpStatus.ACCEPTED
+            ResponseType.ORGANIZER -> CalendarEvent.RsvpStatus.ACCEPTED
+            ResponseType.TENTATIVELY_ACCEPTED -> CalendarEvent.RsvpStatus.TENTATIVE
+            ResponseType.NOT_RESPONDED -> CalendarEvent.RsvpStatus.NEEDS_ACTION
+            ResponseType.NONE -> CalendarEvent.RsvpStatus.NEEDS_ACTION
+            ResponseType.UNEXPECTED_VALUE -> CalendarEvent.RsvpStatus.NEEDS_ACTION
+            else -> CalendarEvent.RsvpStatus.NEEDS_ACTION // Default to NEEDS_ACTION if no match
         }
     }
 
@@ -218,8 +289,8 @@ class MainActivity : AppCompatActivity(), CalendarView {
     }
 
     // Method to show calendar events in the RecyclerView
-    override fun showCalendarEvents(events: Array<String>) {
+    override fun showCalendarEvents(calendarEvents: List<CalendarEvent>) {
         // Here you would populate your RecyclerView with the events
-        recyclerView.adapter = CalendarAdapter(events) // Assuming you have a CalendarAdapter
+        recyclerView.adapter = CalendarAdapter(calendarEvents) // Pass the CalendarEvent list directly
     }
 }

@@ -18,9 +18,9 @@ public class CalendarEvent {
     private String calendarId;
     private int color;
     private Source source;
-    private RsvpStatus rsvpStatus; // Add this line
+    private RsvpStatus rsvpStatus;
 
-    // Constructor, getters, and setters
+    // Constructor
     public CalendarEvent(String id, String title, Date startTime, Date endTime,
                          boolean allDay, String calendarId, int color,
                          Source source, RsvpStatus rsvpStatus) { // Update constructor
@@ -34,5 +34,43 @@ public class CalendarEvent {
         this.source = source;
         this.rsvpStatus = rsvpStatus;
     }
-    // TODO add getters and setters for all fields
+
+    // Getters
+    public String getId() {
+        return id;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public Date getStartTime() {
+        return startTime;
+    }
+
+    public Date getEndTime() {
+        return endTime;
+    }
+
+    public boolean isAllDay() {
+        return allDay;
+    }
+
+    public String getCalendarId() {
+        return calendarId;
+    }
+
+    public int getColor() {
+        return color;
+    }
+
+    public Source getSource() {
+        return source;
+    }
+
+    public RsvpStatus getRsvpStatus() {
+        return rsvpStatus;
+    }
+
+    // TODO add setters for all fields
 }

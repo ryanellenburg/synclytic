@@ -289,7 +289,7 @@ class MainActivity : AppCompatActivity(), CalendarView {
     }
 
     // Method to show calendar events in the RecyclerView
-    override fun showCalendarEvents(calendarEvents: List<CalendarEvent>) {
+    override fun showCalendarEvents(calendarEvents: List<CalendarEvent>?) {
         // Here you would populate your RecyclerView with the events
         recyclerView.adapter = CalendarAdapter(calendarEvents) // Pass the CalendarEvent list directly
     }

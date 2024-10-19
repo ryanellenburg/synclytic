@@ -11,7 +11,13 @@ import java.util.*;
 public class CalendarWidgetView extends AppWidgetProvider implements CalendarView {
     @Override
     public void showCalendarEvents(List<CalendarEvent> calendarEvents) {
-        // Implementation to show events in the widget
+        // 1. Convert the List<CalendarEvent> to an array of strings (if needed)
+        String[] eventStrings = new String[calendarEvents.size()];
+        for (int ni = 0; ni < calendarEvents.size(); ni++) {
+            eventStrings[ni] = calendarEvents.get(ni).getTitle(); // Example: Extract the event title
+        }
+        // 2. Update the widget UI with the calendar events (using eventStrings or calendarEvents)
+        // ... your code to update the widget UI ...
     }
 
     @Override

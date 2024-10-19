@@ -72,5 +72,40 @@ public class CalendarEvent {
         return rsvpStatus;
     }
 
-    // TODO add setters for all fields
+    // Setters
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public void setStartTime(Date startTime) {
+        this.startTime = startTime;
+    }
+
+    public void setEndTime(Date endTime) {
+        this.endTime = endTime;
+    }
+
+    public void setAllDay(boolean allDay) {
+        this.allDay = allDay;
+    }
+
+    public void setCalendarId(String calendarId) {
+        this.calendarId = calendarId;
+    }
+
+    public void setColor(int color) {
+        this.color = color;
+    }
+
+    public void setSource(Source source) {
+        this.source = source;
+    }
+
+    public void setRsvpStatus(RsvpStatus rsvpStatus) {
+        this.rsvpStatus = rsvpStatus;
+    }
 }

@@ -6,6 +6,9 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.widget.ImageButton
+import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -31,16 +34,12 @@ import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.Scope
 import com.google.android.gms.tasks.Task
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeTokenRequest
-import com.google.api.client.auth.oauth2.TokenRequest
-import com.google.api.client.http.GenericUrl
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
 import com.google.api.client.util.DateTime
 import com.google.auth.http.HttpCredentialsAdapter
 import com.google.auth.oauth2.AccessToken as GoogleAccessToken
 import com.google.auth.oauth2.GoogleCredentials
-
-
 
 // Google Calendar API imports
 import com.google.api.services.calendar.Calendar
@@ -49,8 +48,6 @@ import com.google.api.services.calendar.model.Event as GoogleEvent
 
 // MSAL (Microsoft Authentication Library) imports
 import com.azure.core.credential.AccessToken as MicrosoftAccessToken
-import com.azure.core.credential.TokenCredential
-import com.azure.core.credential.TokenRequestContext
 import com.microsoft.graph.authentication.TokenCredentialAuthProvider
 import com.microsoft.graph.core.ClientException
 import com.microsoft.graph.models.Event as MicrosoftEvent
@@ -86,14 +83,14 @@ class MainActivity : AppCompatActivity(), CalendarView {
     private var msalApp: IPublicClientApplication? = null
 
     // Google Cloud Console Credentials
-    private val CLIENT_ID = "915129291320-sc0e1kg26vlamahsqo12tm4flvtsuu7p.apps.googleusercontent.com"
-    private val CLIENT_SECRET = "YOUR_CLIENT_SECRET" //TODO need to find this as it is not showing up on Google Cloud Console
+    private val clientId = "915129291320-sc0e1kg26vlamahsqo12tm4flvtsuu7p.apps.googleusercontent.com"
+    private val clientSecret = "YOUR_CLIENT_SECRET" // TODO need to find this as it is not showing up on Google Cloud Console
 
     // Request code for Google Sign-In
-    private val RC_SIGN_IN = 9001
+    private val rcSignIn = 9001
 
     // Scopes for Microsoft Calendar access
-    private val MS_SCOPES = arrayOf("Calendars.Read")
+    private val msScopes = arrayOf("Calendars.Read")
 
     // Creation of list for calendar events
     private val calendarEvents: MutableList<CalendarEvent> = mutableListOf()
@@ -105,8 +102,29 @@ class MainActivity : AppCompatActivity(), CalendarView {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Initialize RecyclerView
-        recyclerView = findViewById(R.id.recyclerView)
+        val signInGoogleButton = findViewById<ImageButton>(R.id.signInGoogleButton)
+        val signInMicrosoftButton = findViewById<ImageButton>(R.id.signInMicrosoftButton)
+        val statusTextView = findViewById<TextView>(R.id.statusTextView)
+
+        signInGoogleButton.setOnClickListener {
+            // Check if already signed in with Google
+            if (getRefreshTokenFromStorage() == null) {
+                signInWithGoogle()
+            } else {
+                // Optionally show a message that the user is already signed in
+                Toast.makeText(this, "Already signed in with Google", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        signInMicrosoftButton.setOnClickListener {
+            // Check if already signed in with Microsoft
+            if (!isSignedInWithMicrosoft()) { // Replace with your Microsoft sign-in check
+                signInWithMicrosoft()
+            } else {
+                // Optionally show a message that the user is already signed in
+                Toast.makeText(this, "Already signed in with Microsoft", Toast.LENGTH_SHORT).show()
+            }
+        }
 
         // Initialize Presenter
         val prefs = getSharedPreferences("my_prefs", Context.MODE_PRIVATE)
@@ -140,8 +158,7 @@ class MainActivity : AppCompatActivity(), CalendarView {
         val refreshToken = getRefreshTokenFromStorage()
         if (refreshToken != null) {
             val newAccessToken = getAccessTokenUsingRefreshToken(refreshToken)
-        } else {
-            signInWithGoogle() // User is not signed in, initiate the sign-in process
+            statusTextView.text = "Signed in"
         }
 
         // Initialize MSAL and trigger Microsoft sign-in process
@@ -154,7 +171,7 @@ class MainActivity : AppCompatActivity(), CalendarView {
             .requestEmail()
             .requestScopes(Scope(CalendarScopes.CALENDAR))
 
-            .requestServerAuthCode(CLIENT_ID) // Request server auth code
+            .requestServerAuthCode(clientId) // Request server auth code
             .build()
 
         googleSignInClient = GoogleSignIn.getClient(this,
@@ -165,6 +182,7 @@ class MainActivity : AppCompatActivity(), CalendarView {
 
     }
 
+    // TODO come up with description
     private fun getAccessTokenUsingRefreshToken(refreshToken: String): String? {
         try {
             // Get a new access token using the refresh token
@@ -172,8 +190,8 @@ class MainActivity : AppCompatActivity(), CalendarView {
                 NetHttpTransport(),
                 GsonFactory(),
                 "https://oauth2.googleapis.com/token",
-                CLIENT_ID,
-                CLIENT_SECRET,
+                clientId,
+                clientSecret,
                 refreshToken,
                 "" // Redirect URI is not needed for refresh token flow
             ).execute()
@@ -230,6 +248,18 @@ class MainActivity : AppCompatActivity(), CalendarView {
         }
     }
 
+    // TODO come up with description
+    private fun isSignedInWithMicrosoft(): Boolean {
+        val accessToken = getMicrosoftAccessTokenFromStorage() // Implement this function
+        return accessToken != null  // Check if a non-null access token exists
+    }
+
+    // TODO come up with description
+    private fun getMicrosoftAccessTokenFromStorage(): String? {
+        val sharedPreferences = getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+        return sharedPreferences.getString("microsoft_access_token", null)
+    }
+
     // Outlook Calendar Sign-In Step 1
     // MSAL (Microsoft) Authentication setup
     private fun initializeMSAL() {
@@ -267,7 +297,8 @@ class MainActivity : AppCompatActivity(), CalendarView {
     // Start Microsoft sign-in process
     private fun signInWithMicrosoft() {
         val parameters = AcquireTokenParameters.Builder()
-            .withScopes(MS_SCOPES.toList())
+            .withScopes(msScopes.toList())
+            .withPrompt(Prompt.SELECT_ACCOUNT)
             .withCallback(object : AuthenticationCallback {
                 override fun onSuccess(authenticationResult: IAuthenticationResult?) {
                     Log.d("MSAL", "Signed in successfully: ${authenticationResult?.account?.username}")
@@ -363,13 +394,11 @@ class MainActivity : AppCompatActivity(), CalendarView {
 
         // Initialize Microsoft Graph client
         val authProvider = TokenCredentialAuthProvider(
-            MS_SCOPES.toList(),
-            object : TokenCredential {
-                override fun getToken(tokenRequestContext: TokenRequestContext): Mono<MicrosoftAccessToken> {
-                    return Mono.just(
-                        MicrosoftAccessToken(accessToken, OffsetDateTime.now().plusHours(1)) // Set token expiration
-                    )
-                }
+            msScopes.toList(),
+            { tokenRequestContext ->
+                Mono.just(
+                    MicrosoftAccessToken(accessToken, OffsetDateTime.now().plusHours(1))
+                )
             }
         )// Build the Graph client using the authProvider
         val graphClient = GraphServiceClient.builder()

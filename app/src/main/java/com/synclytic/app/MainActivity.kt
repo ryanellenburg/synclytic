@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 // Java imports
+import java.io.IOException
 import java.text.SimpleDateFormat
 import java.time.OffsetDateTime
 import java.util.*
@@ -29,17 +30,22 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.Scope
 import com.google.android.gms.tasks.Task
+import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeTokenRequest
+import com.google.api.client.auth.oauth2.TokenRequest
+import com.google.api.client.http.GenericUrl
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
 import com.google.api.client.util.DateTime
-import com.google.api.services.calendar.Calendar
-import com.google.api.services.calendar.model.Event as GoogleEvent
 import com.google.auth.http.HttpCredentialsAdapter
 import com.google.auth.oauth2.AccessToken as GoogleAccessToken
 import com.google.auth.oauth2.GoogleCredentials
 
+
+
 // Google Calendar API imports
+import com.google.api.services.calendar.Calendar
 import com.google.api.services.calendar.CalendarScopes
+import com.google.api.services.calendar.model.Event as GoogleEvent
 
 // MSAL (Microsoft Authentication Library) imports
 import com.azure.core.credential.AccessToken as MicrosoftAccessToken
@@ -79,6 +85,10 @@ class MainActivity : AppCompatActivity(), CalendarView {
     // MSAL client for Microsoft authentication
     private var msalApp: IPublicClientApplication? = null
 
+    // Google Cloud Console Credentials
+    private val CLIENT_ID = "915129291320-sc0e1kg26vlamahsqo12tm4flvtsuu7p.apps.googleusercontent.com"
+    private val CLIENT_SECRET = "YOUR_CLIENT_SECRET" //TODO need to find this as it is not showing up on Google Cloud Console
+
     // Request code for Google Sign-In
     private val RC_SIGN_IN = 9001
 
@@ -115,51 +125,85 @@ class MainActivity : AppCompatActivity(), CalendarView {
             Log.e("MainActivity", "CalendarWidgetView not found in SharedPreferences")
         }
 
-        // Register the ActivityResultLauncher for Google Sign-In
+        // Initialize Google Sign-In and trigger the sign-in process
         signInLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == Activity.RESULT_OK) {
-                val data = result.data
-                val task: Task<GoogleSignInAccount> = GoogleSignIn.getSignedInAccountFromIntent(data)
+                val data: Intent? = result.data
+
+                val task = GoogleSignIn.getSignedInAccountFromIntent(data)
+
                 handleGoogleSignInResult(task)
             }
         }
 
-        // Initialize Google Sign-In and trigger the sign-in process
-        initializeGoogleSignIn()
+        // Check if the user is already signed in (using refresh token, etc.)
+        val refreshToken = getRefreshTokenFromStorage()
+        if (refreshToken != null) {
+            val newAccessToken = getAccessTokenUsingRefreshToken(refreshToken)
+        } else {
+            signInWithGoogle() // User is not signed in, initiate the sign-in process
+        }
 
         // Initialize MSAL and trigger Microsoft sign-in process
         initializeMSAL()
     }
 
-    // Google Calendar Sign-In Step 1
-    // Google Sign-In setup
-    private fun initializeGoogleSignIn() {
+    // Start the Google Sign-In process if not signed in
+    private fun signInWithGoogle() {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestEmail() // Request email permission
-            .requestScopes(Scope(CalendarScopes.CALENDAR)) // Request access to Google Calendar API
+            .requestEmail()
+            .requestScopes(Scope(CalendarScopes.CALENDAR))
+
+            .requestServerAuthCode(CLIENT_ID) // Request server auth code
             .build()
 
-        // Initialize GoogleSignInClient with the options above
-        googleSignInClient = GoogleSignIn.getClient(this, gso)
+        googleSignInClient = GoogleSignIn.getClient(this,
+        gso)
 
-        // Trigger the Google Sign-In flow
-        signInWithGoogle()
-    }
-
-    // Google Calendar Sign-In Step 2
-    // Start the Google Sign-In process
-    private fun signInWithGoogle() {
         val signInIntent = googleSignInClient.signInIntent
         signInLauncher.launch(signInIntent)
+
     }
 
-    // Google Calendar Sign-In Step 3
-    // Handle the result of Google Sign-In activity
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
+    private fun getAccessTokenUsingRefreshToken(refreshToken: String): String? {
+        try {
+            // Get a new access token using the refresh token
+            val tokenResponse = GoogleAuthorizationCodeTokenRequest(
+                NetHttpTransport(),
+                GsonFactory(),
+                "https://oauth2.googleapis.com/token",
+                CLIENT_ID,
+                CLIENT_SECRET,
+                refreshToken,
+                "" // Redirect URI is not needed for refresh token flow
+            ).execute()
+
+            // Create new GoogleCredentials with the access token
+            val googleCredentials = GoogleCredentials.create(GoogleAccessToken(tokenResponse.accessToken, null))
+
+            return tokenResponse.accessToken
+        } catch (e: IOException) {
+            Log.e("TokenRefresh", "Error refreshing access token", e)
+            return null
+        }
     }
 
-    // Google Calendar Sign-In Step 4
+
+    // TODO come up with description
+    private fun storeRefreshTokenToStorage(refreshToken: String) {
+        val sharedPreferences = getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+        val editor = sharedPreferences.edit()
+        editor.putString("refresh_token", refreshToken)
+        editor.apply()
+    }
+
+    // TODO come up with description
+    private fun getRefreshTokenFromStorage(): String? {
+        val sharedPreferences = getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+        return sharedPreferences.getString("refresh_token", null)
+    }
+
+    // Google Calendar Sign-In Step TBD
     // Process the result of Google Sign-In
     private fun handleGoogleSignInResult(task: Task<GoogleSignInAccount>) {
         try {
@@ -167,6 +211,13 @@ class MainActivity : AppCompatActivity(), CalendarView {
             val account = task.getResult(ApiException::class.java)
 
             Log.d("GoogleSignIn", "Signed in as: ${account.email}")
+
+            val serverAuthCode = account.serverAuthCode
+
+            val refreshToken = account.serverAuthCode
+            if (refreshToken != null) {
+                storeRefreshTokenToStorage(refreshToken)
+            }
 
             // Get the access token
             val accessToken = account.idToken // Get the ID token
@@ -239,7 +290,7 @@ class MainActivity : AppCompatActivity(), CalendarView {
     }
 
     // Fetch Google and Microsoft Calendar Data Step 1
-    // TODO get and finish code for fetchGoogleCalendarData
+    // Fetch Google Calendar data using the access token
     private fun fetchGoogleCalendarData(accessTokenString: String?) {
         if (accessTokenString == null) return
 
@@ -370,7 +421,7 @@ class MainActivity : AppCompatActivity(), CalendarView {
         }
     }
 
-    // Google and Microsoft Step TODO find out which step this is
+    // Google and Microsoft Step 3
     // getRsvpStatus() function
     private fun getRsvpStatus(event: Any): CalendarEvent.RsvpStatus {
         return when (event) {
@@ -408,7 +459,7 @@ class MainActivity : AppCompatActivity(), CalendarView {
         }
     }
 
-    // Google and Microsoft Step TODO find out which step this is
+    // Google and Microsoft Step 4
     // Method to show calendar events in the RecyclerView
     override fun showCalendarEvents(calendarEvents: List<CalendarEvent>?) {
         // Here you would populate your RecyclerView with the events
